@@ -1,0 +1,53 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Vaadin ###
+# Vaadin generoi nämä buildin aikana; ne ovat suuria ja koneriippuvaisia, joten niitä ei versioida.
+node_modules/
+src/main/frontend/generated/
+src/main/bundles/
+vite.generated.ts
+vite.config.ts
+types.d.ts
+tsconfig.json
+package.json
+package-lock.json
+.npmrc
+.pnpmfile.cjs
+
+### Sovelluksen ajonaikainen data ###
+data/
+uploads/
+*.mv.db
+*.trace.db
