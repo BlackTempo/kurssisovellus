@@ -50,7 +50,8 @@ public class ForgotPasswordView extends VerticalLayout implements LocaleChangeOb
             passwordResetService.requestReset(email.getValue());
             // Sama viesti löytyi tunnus tai ei – ks. PasswordResetService.requestReset.
             Notifications.success(getTranslation("forgot.sent"));
-            email.clear();
+            // Kenttää ei tyhjennetä: tyhjennys laukaisisi pakollisuusvalidoinnin, ja kenttä näkyisi
+            // punaisena virheenä heti onnistuneen lähetyksen jälkeen.
         });
 
         Div card = new Div(title, info, email, submit, back);
