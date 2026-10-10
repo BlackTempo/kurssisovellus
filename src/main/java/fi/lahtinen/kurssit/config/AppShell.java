@@ -1,6 +1,7 @@
 package fi.lahtinen.kurssit.config;
 
 import com.vaadin.flow.component.page.AppShellConfigurator;
+import com.vaadin.flow.server.AppShellSettings;
 import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.theme.Theme;
 
@@ -16,4 +17,10 @@ import com.vaadin.flow.theme.Theme;
 @Theme("kurssiteema")
 @Push
 public class AppShell implements AppShellConfigurator {
+
+    @Override
+    public void configurePage(AppShellSettings settings) {
+        // SVG-favicon skaalautuu kaikkiin kokoihin, joten erillisiä PNG-versioita ei tarvita.
+        settings.addFavIcon("icon", "icons/favicon.svg", "any");
+    }
 }

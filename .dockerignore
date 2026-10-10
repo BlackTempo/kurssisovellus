@@ -1,0 +1,11 @@
+# Build-konteksti pidetään pienenä: paikalliset build-tuotokset, node_modules ja kehitystietokanta
+# eivät kuulu imageen, ja niiden lähettäminen Docker-daemonille hidastaisi jokaista buildia.
+target/
+node_modules/
+data/
+src/main/frontend/generated/
+src/main/bundles/
+.git/
+.idea/
+.vscode/
+*.iml

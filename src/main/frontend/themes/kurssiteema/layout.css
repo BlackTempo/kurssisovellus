@@ -27,8 +27,13 @@
    riville; avatar ja logout-nappi riittävät tunnistamaan käyttäjän. */
 @media (max-width: 640px) {
   .app-header .user-name,
-  .app-header .app-title {
+  .app-header .app-title,
+  .app-header .header-register {
     display: none;
+  }
+
+  .page {
+    padding: var(--lumo-space-m);
   }
 }
 

@@ -175,6 +175,8 @@ public class MainLayout extends AppLayout implements LocaleChangeObserver {
             loginButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
             registerButton = new Button("", e -> UI.getCurrent().navigate(RegisterView.class));
             registerButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+            // Piilotetaan kapealla näytöllä (layout.css); rekisteröitymislinkki löytyy myös kirjautumissivulta.
+            registerButton.addClassName("header-register");
             section.add(registerButton, loginButton);
         }
         return section;

@@ -1,0 +1,62 @@
+# Käynnistää koko ympäristön yhdellä komennolla (vaatimus 25):  docker compose up --build
+#
+#   Sovellus:   http://localhost:8080   (admin/admin123, user/user123, super/super123)
+#   Mailpit:    http://localhost:8025   (rekisteröitymis- ja salasanaviestit näkyvät täällä)
+#
+# Salasanat ovat kehityskäyttöön tarkoitettuja oletuksia; ne voi ylikirjoittaa .env-tiedostolla.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: kurssit
+      POSTGRES_USER: ${DB_USER:-kurssit}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-kurssit}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    # Healthcheck: sovellus käynnistetään vasta kun tietokanta oikeasti vastaa. Pelkkä depends_on
+    # odottaisi vain kontin käynnistymistä, ja sovellus kaatuisi yhteysvirheeseen ensimmäisellä kerralla.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"   # web-käyttöliittymä lähetettyjen viestien tarkasteluun
+    restart: unless-stopped
+
+  app:
+    build: .
+    image: kurssisovellus:latest
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_URL: jdbc:postgresql://db:5432/kurssit
+      DB_USER: ${DB_USER:-kurssit}
+      DB_PASSWORD: ${DB_PASSWORD:-kurssit}
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      APP_BASE_URL: http://localhost:8080
+      APP_UPLOAD_DIR: /data/uploads
+      # Kontin oletusaikavyöhyke on UTC; ilman tätä historian ja live-muutosten kellonajat
+      # näkyisivät kolme tuntia väärin suomalaiselle käyttäjälle.
+      TZ: Europe/Helsinki
+    ports:
+      - "8080:8080"
+    volumes:
+      - uploads:/data/uploads
+    restart: unless-stopped
+
+# Nimetyt volumet säilyttävät tietokannan ja liitetiedostot, vaikka kontit poistetaan
+# (docker compose down). Kaiken datan saa nollattua komennolla docker compose down -v.
+volumes:
+  db-data:
+  uploads:

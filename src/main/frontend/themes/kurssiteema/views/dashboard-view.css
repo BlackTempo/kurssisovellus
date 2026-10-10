@@ -82,3 +82,13 @@
   border-left: 3px solid var(--lumo-primary-color-50pct);
   animation: fadeInUp 0.4s ease-out both;
 }
+
+/* Kapealla näytöllä hero-otsikko pienennetään ja pitkät suomenkieliset sanat saavat katketa,
+   jotta "kurssisovellukseen!" ei vuoda kortin ulkopuolelle. */
+@media (max-width: 600px) {
+  .dashboard-view h1 {
+    font-size: var(--lumo-font-size-xxl);
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+}
