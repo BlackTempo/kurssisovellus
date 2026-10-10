@@ -1,0 +1,54 @@
+/*
+ * Muutoshistorian aikajana (vaatimus 32). Käytetään sekä HistoryViewssä että kurssin
+ * historiadialogissa, joten säännöt on rajattu .timeline-komponenttiluokkaan eikä näkymään.
+ */
+
+.timeline {
+  position: relative;
+  padding-left: var(--lumo-space-l);
+}
+
+/* Pystyviiva piirretään pseudo-elementillä, jotta se jatkuu yhtenäisenä kaikkien tapahtumien läpi. */
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--lumo-contrast-20pct);
+}
+
+.timeline-item {
+  position: relative;
+  padding: 0 0 var(--lumo-space-m) var(--lumo-space-s);
+}
+
+.timeline-dot {
+  position: absolute;
+  left: calc(-1 * var(--lumo-space-l) + 3px);
+  top: 4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 3px solid var(--app-surface);
+  box-shadow: 0 0 0 1px var(--lumo-contrast-20pct);
+}
+
+.timeline-dot.add { background: var(--lumo-success-color); }
+.timeline-dot.mod { background: var(--lumo-primary-color); }
+.timeline-dot.del { background: var(--lumo-error-color); }
+
+.timeline-meta {
+  font-size: var(--lumo-font-size-s);
+  color: var(--lumo-secondary-text-color);
+}
+
+.timeline-title {
+  font-weight: 600;
+}
+
+.timeline-fields {
+  font-size: var(--lumo-font-size-xs);
+  color: var(--lumo-secondary-text-color);
+}

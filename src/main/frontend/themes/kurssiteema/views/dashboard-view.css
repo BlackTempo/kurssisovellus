@@ -1,0 +1,84 @@
+/*
+ * Näkymäkohtainen CSS (vaatimus 8): koskee vain DashboardViewtä.
+ *
+ * Kaikki säännöt alkavat .dashboard-view-luokalla, jonka DashboardView asettaa juurielementilleen
+ * addClassName-kutsulla. Näin samat Vaadin-komponentit (napit, ikonit, layoutit) näyttävät muissa
+ * näkymissä edelleen oletusteeman mukaisilta. Vaihtoehto, @CssImport näkymäluokassa, ladattaisi
+ * tyylin silti globaalisti, joten rajaus luokalla on tarpeen kummassakin tapauksessa.
+ */
+
+.dashboard-view {
+  background:
+    radial-gradient(circle at 100% 0%, var(--app-accent-soft), transparent 40%),
+    var(--app-page-bg);
+}
+
+/* Otsikot: korostusvärinen alaviiva vain tässä näkymässä. */
+.dashboard-view h2 {
+  font-size: var(--lumo-font-size-xl);
+  margin: var(--lumo-space-l) 0 var(--lumo-space-s);
+  padding-bottom: var(--lumo-space-xs);
+  border-bottom: 3px solid var(--app-accent);
+  display: inline-block;
+}
+
+/* Vaadin Button: pyöreämmät ja isommat napit dashboardilla. */
+.dashboard-view vaadin-button {
+  border-radius: 999px;
+  padding: 0 var(--lumo-space-l);
+}
+
+/* Hero-osion nappi on sinisen liukuvärin päällä: valkoinen tausta takaa riittävän kontrastin
+   (WCAG AA), jota mikään Lumon valmis variantti ei tällä taustalla anna. */
+.dashboard-view vaadin-button.hero-button {
+  background: #fff;
+  color: var(--lumo-primary-text-color);
+  font-weight: 600;
+  box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.4);
+}
+
+/* Vaadin Icon: tilastokorttien ikonit saavat korostustaustan. */
+.dashboard-view vaadin-icon.stat-icon {
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  background: var(--lumo-primary-color-10pct);
+  color: var(--lumo-primary-color);
+}
+
+/* Vaadin HorizontalLayout: korttirivit rivittyvät kapealla näytöllä. */
+.dashboard-view vaadin-horizontal-layout.card-row {
+  flex-wrap: wrap;
+  gap: var(--lumo-space-m);
+}
+
+.dashboard-view .stat-card {
+  flex: 1 1 180px;
+  background: var(--app-surface);
+  border-radius: var(--lumo-border-radius-l);
+  padding: var(--lumo-space-m);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  display: flex;
+  align-items: center;
+  gap: var(--lumo-space-m);
+}
+
+.dashboard-view .stat-value {
+  font-size: var(--lumo-font-size-xxl);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dashboard-view .course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--lumo-space-m);
+}
+
+.dashboard-view .activity-item {
+  padding: var(--lumo-space-xs) var(--lumo-space-s);
+  border-left: 3px solid var(--lumo-primary-color-50pct);
+  animation: fadeInUp 0.4s ease-out both;
+}

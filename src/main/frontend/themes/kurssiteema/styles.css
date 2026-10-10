@@ -1,1 +1,206 @@
-/* Globaalit tyylit lisätään vaiheessa 4. */
+/*
+ * Sovelluksen globaali teema (vaatimus 6).
+ *
+ * Lumo-teema rakentuu CSS-muuttujista (custom properties), joten koko sovelluksen ilmettä voi muuttaa
+ * ylikirjoittamalla muuttujat yhdessä paikassa. Tämä on parempi kuin yksittäisten komponenttien
+ * tyylittely: kaikki Vaadin-komponentit (myös ne, joita ei vielä käytetä) perivät muutokset.
+ *
+ * Fontti-importin on oltava tiedoston alussa: CSS-standardi ohittaa @importit, jotka tulevat muiden
+ * sääntöjen jälkeen.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('./layout.css');
+@import url('./views/dashboard-view.css');
+@import url('./views/history-view.css');
+@import url('./views/auth-view.css');
+
+html {
+  /* --- Perusfontti --- */
+  /* Varafontit listataan, jotta sivu on luettava myös ennen kuin web-fontti on latautunut tai jos
+     Google Fonts on estetty (esim. yritysverkossa). */
+  --lumo-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --lumo-font-size-m: 0.95rem;
+
+  /* --- Oma väripaletti --- */
+  /* Syvä sininen pääväri + meripihkan sävyinen korostusväri. Lumo johtaa pääväristä hover- ja
+     taustasävyt pct-muuttujien kautta, joten nekin on määriteltävä, tai ne jäisivät oletussiniksi. */
+  --app-primary-h: 222;
+  --app-primary-s: 68%;
+  --app-primary-l: 42%;
+  --lumo-primary-color: hsl(var(--app-primary-h), var(--app-primary-s), var(--app-primary-l));
+  --lumo-primary-color-50pct: hsla(var(--app-primary-h), var(--app-primary-s), var(--app-primary-l), 0.5);
+  --lumo-primary-color-10pct: hsla(var(--app-primary-h), var(--app-primary-s), var(--app-primary-l), 0.1);
+  --lumo-primary-text-color: hsl(var(--app-primary-h), var(--app-primary-s), 38%);
+  --lumo-primary-contrast-color: #fff;
+
+  --lumo-success-color: hsl(152, 60%, 36%);
+  --lumo-success-text-color: hsl(152, 60%, 30%);
+  --lumo-error-color: hsl(355, 72%, 50%);
+  --lumo-error-text-color: hsl(355, 72%, 44%);
+
+  --app-accent: hsl(36, 92%, 52%);
+  --app-accent-soft: hsla(36, 92%, 52%, 0.15);
+  --app-surface: #ffffff;
+  --app-page-bg: hsl(220, 30%, 97%);
+
+  /* --- Komponenttien kaarevuus --- */
+  --lumo-border-radius-s: 6px;
+  --lumo-border-radius-m: 10px;
+  --lumo-border-radius-l: 16px;
+
+  background-color: var(--app-page-bg);
+}
+
+/* --- Nappien syvyys --- */
+/* Pääpainikkeet saavat "fyysisen" alareunan ja varjon, joka painuu klikatessa. Tämä erottaa
+   ensisijaisen toiminnon selvästi toissijaisista. */
+vaadin-button[theme~='primary'] {
+  box-shadow: 0 3px 0 0 hsl(var(--app-primary-h), var(--app-primary-s), 28%),
+              0 6px 14px -4px hsla(var(--app-primary-h), var(--app-primary-s), 30%, 0.45);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+vaadin-button[theme~='primary'][active] {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 0 hsl(var(--app-primary-h), var(--app-primary-s), 28%);
+}
+
+/* --- Tekstikenttien ulkoasu --- */
+/* Lumon oletuskenttä on harmaa täyttö ilman reunaa. Valkoinen tausta + ohut reuna erottuu paremmin
+   sivun vaaleasta taustasta. ::part() on ainoa tapa tyylitellä Shadow DOMin sisäistä kenttää ulkoa. */
+vaadin-text-field::part(input-field),
+vaadin-email-field::part(input-field),
+vaadin-password-field::part(input-field),
+vaadin-integer-field::part(input-field),
+vaadin-text-area::part(input-field),
+vaadin-date-picker::part(input-field),
+vaadin-combo-box::part(input-field),
+vaadin-multi-select-combo-box::part(input-field),
+vaadin-select::part(input-field) {
+  background-color: var(--app-surface);
+  border: 1px solid var(--lumo-contrast-20pct);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+vaadin-text-field[focused]::part(input-field),
+vaadin-email-field[focused]::part(input-field),
+vaadin-password-field[focused]::part(input-field),
+vaadin-integer-field[focused]::part(input-field),
+vaadin-text-area[focused]::part(input-field),
+vaadin-date-picker[focused]::part(input-field),
+vaadin-combo-box[focused]::part(input-field),
+vaadin-multi-select-combo-box[focused]::part(input-field),
+vaadin-select[focused]::part(input-field) {
+  border-color: var(--lumo-primary-color);
+  box-shadow: 0 0 0 3px var(--lumo-primary-color-10pct);
+}
+
+/* --- Yleiskäyttöiset luokat --- */
+
+/* Hover/focus/transition-määritys kortille (vaatimus 10). Kortti zoomaa 3 % hoverissa; fokus näytetään
+   vain näppäimistökäytössä (:focus-visible), jottei hiirellä klikattu kortti saa turhaa reunusta. */
+.course-card {
+  background: var(--app-surface);
+  border-radius: var(--lumo-border-radius-l);
+  padding: var(--lumo-space-m);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  outline: none;
+}
+
+.course-card:hover {
+  transform: scale(1.03);
+  box-shadow: 0 12px 24px -8px rgba(15, 23, 42, 0.25);
+}
+
+.course-card:focus-visible {
+  box-shadow: 0 0 0 3px var(--lumo-primary-color-50pct);
+  transform: scale(1.03);
+}
+
+/* Liukuva sisääntulo napeille (vaatimus 10). prefers-reduced-motion kunnioittaa käyttäjiä, jotka ovat
+   pyytäneet käyttöjärjestelmässä vähentämään animaatioita (saavutettavuus). */
+.fade-in-button {
+  animation: fadeInUp 0.6s ease-out both;
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.fade-in-button:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.fade-in-button:focus-visible {
+  outline: 3px solid var(--app-accent);
+  outline-offset: 2px;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in-button,
+  .course-card {
+    animation: none;
+    transition: none;
+  }
+}
+
+.page {
+  padding: var(--lumo-space-l);
+  box-sizing: border-box;
+}
+
+.page-title {
+  margin: 0 0 var(--lumo-space-s);
+}
+
+.toolbar {
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--lumo-space-s);
+}
+
+/* Quill-editorin kehys sovitetaan Lumo-kenttien ilmeeseen. Editori on light DOMissa, joten sitä voi
+   tyylitellä suoraan ilman ::part-selektoreita. */
+quill-editor {
+  display: block;
+}
+
+quill-editor .ql-toolbar.ql-snow {
+  border-radius: var(--lumo-border-radius-m) var(--lumo-border-radius-m) 0 0;
+  border-color: var(--lumo-contrast-20pct);
+  font-family: var(--lumo-font-family);
+}
+
+quill-editor .ql-container.ql-snow {
+  border-radius: 0 0 var(--lumo-border-radius-m) var(--lumo-border-radius-m);
+  border-color: var(--lumo-contrast-20pct);
+  background: var(--app-surface);
+  font-family: var(--lumo-font-family);
+  font-size: var(--lumo-font-size-m);
+  min-height: 140px;
+}
+
+quill-editor[invalid] .ql-container.ql-snow {
+  border-color: var(--lumo-error-color);
+}
+
+quill-editor .quill-error {
+  color: var(--lumo-error-text-color);
+  font-size: var(--lumo-font-size-xs);
+  margin-top: var(--lumo-space-xs);
+}
+
+.rich-text p {
+  margin: 0 0 0.4em;
+}

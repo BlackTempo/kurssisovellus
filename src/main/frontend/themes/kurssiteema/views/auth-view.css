@@ -1,0 +1,32 @@
+/* Kirjautumis-, rekisteröitymis- ja salasananäkymien yhteinen keskitetty kortti. */
+
+.auth-view {
+  align-items: center;
+  justify-content: center;
+  padding: var(--lumo-space-l);
+}
+
+.auth-card {
+  background: var(--app-surface);
+  border-radius: var(--lumo-border-radius-l);
+  box-shadow: 0 10px 30px -12px rgba(15, 23, 42, 0.3);
+  padding: var(--lumo-space-l);
+  width: 100%;
+  max-width: 420px;
+  box-sizing: border-box;
+}
+
+.auth-card h2 {
+  margin-top: 0;
+}
+
+/* LoginForm tuo oman korttitaustansa; se poistetaan, koska kortti on jo .auth-cardissa. */
+.auth-card vaadin-login-form-wrapper {
+  background: transparent;
+}
+
+.denied-icon {
+  width: 72px;
+  height: 72px;
+  color: var(--lumo-error-color);
+}

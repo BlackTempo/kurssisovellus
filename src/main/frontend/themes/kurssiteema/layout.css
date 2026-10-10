@@ -1,0 +1,140 @@
+/*
+ * MainLayoutin rakenne: header, navigaatio ja footer (vaatimukset 11, 13–15).
+ */
+
+/* --- Header --- */
+.app-header {
+  width: 100%;
+  padding: 0 var(--lumo-space-m) 0 0;
+  gap: var(--lumo-space-s);
+  box-sizing: border-box;
+}
+
+.app-logo {
+  color: var(--lumo-primary-color);
+  width: var(--lumo-icon-size-l);
+  height: var(--lumo-icon-size-l);
+}
+
+.app-title {
+  font-size: var(--lumo-font-size-l);
+  font-weight: 700;
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* Pienellä näytöllä piilotetaan käyttäjän nimi ja kielivalitsimen otsikko, jotta header mahtuu yhdelle
+   riville; avatar ja logout-nappi riittävät tunnistamaan käyttäjän. */
+@media (max-width: 640px) {
+  .app-header .user-name,
+  .app-header .app-title {
+    display: none;
+  }
+}
+
+/* --- Drawer / navigaatio --- */
+.drawer-brand {
+  padding: var(--lumo-space-m);
+  font-weight: 600;
+  color: var(--lumo-secondary-text-color);
+  font-size: var(--lumo-font-size-s);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* SideNav korostaa aktiivisen reitin current-attribuutilla. Oletuskorostusta vahvistetaan
+   reunaviivalla, jotta aktiivinen sivu erottuu selvästi myös värisokeille (ei pelkkä väri). */
+vaadin-side-nav-item[current]::part(content) {
+  box-shadow: inset 3px 0 0 var(--app-accent);
+  font-weight: 600;
+}
+
+/* --- Sisältö + footer --- */
+/* Sisältöalue on flex-sarake, jossa näkymä kasvaa (flex: 1) ja footer työntyy aina näkymän alaosaan,
+   vaikka sisältöä olisi vähän ("sticky footer"). Pitkällä sisällöllä footer seuraa sisältöä. */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.app-content {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Näkymät täyttävät sisältöalueen leveyden; korkeus kasvaa sisällön mukaan. */
+.app-content > * {
+  flex: 1 0 auto;
+}
+
+/*
+ * Sticky footer -rakenteessa sisältöalueella on vain min-height, ei kiinteää korkeutta. Siksi
+ * prosenttikorkeudet (setSizeFull) eivät ratkea näkymien sisällä, ja grid kutistuisi yhden rivin
+ * korkuiseksi. Gridit ja master–detail-jako saavat siksi näkymäkorkeuteen sidotun minimikorkeuden;
+ * pitkä lista vierii gridin sisällä, jolloin otsikkorivi ja työkalupalkki pysyvät näkyvissä.
+ */
+.app-content vaadin-grid {
+  min-height: max(320px, calc(100vh - 300px));
+  flex-grow: 1;
+}
+
+.app-content > vaadin-split-layout {
+  min-height: calc(100vh - var(--vaadin-app-layout-navbar-offset-size, 56px));
+}
+
+.app-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--lumo-space-s) var(--lumo-space-l);
+  padding: var(--lumo-space-m) var(--lumo-space-l);
+  background: hsl(222, 45%, 16%);
+  color: hsla(0, 0%, 100%, 0.85);
+  border-top: 4px solid var(--app-accent);
+  font-size: var(--lumo-font-size-s);
+}
+
+.app-footer a {
+  color: var(--app-accent);
+  text-decoration: none;
+}
+
+.app-footer a:hover,
+.app-footer a:focus-visible {
+  text-decoration: underline;
+}
+
+.app-footer .footer-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.app-footer .footer-links {
+  display: flex;
+  gap: var(--lumo-space-m);
+  align-items: center;
+}
+
+/* Responsiivisuus: kapealla näytöllä footerin osiot pinotaan keskitetysti allekkain. */
+@media (max-width: 700px) {
+  .app-footer {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .app-footer .footer-section {
+    align-items: center;
+  }
+}
+
+/* Badge-tyyli roolien ja kurssien listaukseen (Lumo badge -moduuli tuodaan theme.jsonissa). */
+.badge-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
