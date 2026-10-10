@@ -16,6 +16,7 @@ import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import fi.lahtinen.kurssit.service.PasswordResetService;
 import fi.lahtinen.kurssit.ui.MainLayout;
+import fi.lahtinen.kurssit.ui.components.FormFields;
 import fi.lahtinen.kurssit.ui.components.Notifications;
 
 /**
@@ -28,7 +29,7 @@ public class ForgotPasswordView extends VerticalLayout implements LocaleChangeOb
 
     private final H2 title = new H2();
     private final Paragraph info = new Paragraph();
-    private final EmailField email = new EmailField();
+    private final EmailField email = FormFields.email(null);
     private final Button submit = new Button();
     private final RouterLink back = new RouterLink("", LoginView.class);
 

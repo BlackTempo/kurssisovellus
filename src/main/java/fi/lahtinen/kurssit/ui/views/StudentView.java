@@ -42,6 +42,7 @@ import fi.lahtinen.kurssit.service.CourseService;
 import fi.lahtinen.kurssit.service.CsvService;
 import fi.lahtinen.kurssit.service.StudentService;
 import fi.lahtinen.kurssit.ui.MainLayout;
+import fi.lahtinen.kurssit.ui.components.FormFields;
 import fi.lahtinen.kurssit.ui.components.Notifications;
 import jakarta.annotation.security.RolesAllowed;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -212,10 +213,10 @@ public class StudentView extends VerticalLayout {
         studentNumber.setPlaceholder("S123456");
         TextField firstName = new TextField("Etunimi");
         TextField lastName = new TextField("Sukunimi");
-        EmailField email = new EmailField("Sähköposti");
-        DatePicker birthDate = new DatePicker("Syntymäaika");
+        EmailField email = FormFields.email("Sähköposti");
+        DatePicker birthDate = FormFields.date("Syntymäaika");
         birthDate.setMax(LocalDate.now().minusDays(1));
-        DatePicker enrolledAt = new DatePicker("Opinnot alkaneet");
+        DatePicker enrolledAt = FormFields.date("Opinnot alkaneet");
         enrolledAt.setMax(LocalDate.now());
         // M:N-relaation muokkaus: useiden kurssien valinta
         MultiSelectComboBox<Course> courses = new MultiSelectComboBox<>("Kurssit");

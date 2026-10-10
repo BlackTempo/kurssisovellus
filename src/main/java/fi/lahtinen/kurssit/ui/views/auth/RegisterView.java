@@ -24,6 +24,7 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
 import fi.lahtinen.kurssit.service.BusinessException;
 import fi.lahtinen.kurssit.service.UserService;
 import fi.lahtinen.kurssit.ui.MainLayout;
+import fi.lahtinen.kurssit.ui.components.FormFields;
 import fi.lahtinen.kurssit.ui.components.Notifications;
 
 /**
@@ -62,7 +63,7 @@ public class RegisterView extends VerticalLayout implements LocaleChangeObserver
     private final H2 title = new H2();
     private final TextField username = new TextField();
     private final TextField fullName = new TextField();
-    private final EmailField email = new EmailField();
+    private final EmailField email = FormFields.email(null);
     private final PasswordField password = new PasswordField();
     private final PasswordField confirm = new PasswordField();
     private final Button submit = new Button();

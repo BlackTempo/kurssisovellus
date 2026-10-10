@@ -50,6 +50,7 @@ import fi.lahtinen.kurssit.service.FileStorageService;
 import fi.lahtinen.kurssit.service.HistoryService;
 import fi.lahtinen.kurssit.service.TeacherService;
 import fi.lahtinen.kurssit.ui.MainLayout;
+import fi.lahtinen.kurssit.ui.components.FormFields;
 import fi.lahtinen.kurssit.ui.components.HistoryTimeline;
 import fi.lahtinen.kurssit.ui.components.Notifications;
 import fi.lahtinen.kurssit.ui.components.QuillEditor;
@@ -99,8 +100,8 @@ public class CourseView extends SplitLayout {
     private final TextField name = new TextField("Nimi");
     private final IntegerField credits = new IntegerField("Opintopisteet");
     private final IntegerField maxStudents = new IntegerField("Max. osallistujat");
-    private final DatePicker startDate = new DatePicker("Alkaa");
-    private final DatePicker endDate = new DatePicker("Päättyy");
+    private final DatePicker startDate = FormFields.date("Alkaa");
+    private final DatePicker endDate = FormFields.date("Päättyy", "Loppupäivä ei voi olla ennen alkupäivää", null);
     private final ComboBox<Teacher> teacher = new ComboBox<>("Opettaja");
     private final QuillEditor description = new QuillEditor();
 

@@ -95,6 +95,21 @@ vaadin-select[focused]::part(input-field) {
   box-shadow: 0 0 0 3px var(--lumo-primary-color-10pct);
 }
 
+/* Virhetila: koska yllä pakotetaan valkoinen tausta, Lumon oma punertava virhetausta ei näkyisi, ja
+   virheellinen kenttä erottuisi vain pienestä tekstistä. Punainen reuna + taustasävy palauttavat sen. */
+vaadin-text-field[invalid]::part(input-field),
+vaadin-email-field[invalid]::part(input-field),
+vaadin-password-field[invalid]::part(input-field),
+vaadin-integer-field[invalid]::part(input-field),
+vaadin-text-area[invalid]::part(input-field),
+vaadin-date-picker[invalid]::part(input-field),
+vaadin-combo-box[invalid]::part(input-field),
+vaadin-multi-select-combo-box[invalid]::part(input-field),
+vaadin-select[invalid]::part(input-field) {
+  border-color: var(--lumo-error-color);
+  background-color: var(--lumo-error-color-10pct);
+}
+
 /* --- Yleiskäyttöiset luokat --- */
 
 /* Hover/focus/transition-määritys kortille (vaatimus 10). Kortti zoomaa 3 % hoverissa; fokus näytetään

@@ -89,17 +89,27 @@ vaadin-side-nav-item[current]::part(content) {
   min-height: calc(100vh - var(--vaadin-app-layout-navbar-offset-size, 56px));
 }
 
+/*
+ * Footer on kiinnitetty näkymän alaosaan (vaatimus 15): position: sticky + bottom: 0 pitää sen
+ * näkyvissä ikkunan alareunassa sisältöä vieritettäessä, ja sivun lopussa se asettuu luonnolliselle
+ * paikalleen sisällön alle. position: fixed peittäisi sivun viimeiset rivit pysyvästi ja vaatisi
+ * arvatun alamarginaalin sisällölle; sticky välttää molemmat.
+ */
 .app-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
   flex-shrink: 0;
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: var(--lumo-space-s) var(--lumo-space-l);
-  padding: var(--lumo-space-m) var(--lumo-space-l);
+  gap: var(--lumo-space-xs) var(--lumo-space-l);
+  padding: var(--lumo-space-s) var(--lumo-space-l);
   background: hsl(222, 45%, 16%);
   color: hsla(0, 0%, 100%, 0.85);
   border-top: 4px solid var(--app-accent);
+  box-shadow: 0 -4px 12px -6px rgba(15, 23, 42, 0.35);
   font-size: var(--lumo-font-size-s);
 }
 
@@ -125,15 +135,22 @@ vaadin-side-nav-item[current]::part(content) {
   align-items: center;
 }
 
-/* Responsiivisuus: kapealla näytöllä footerin osiot pinotaan keskitetysti allekkain. */
+/* Responsiivisuus: kapealla näytöllä osiot pinotaan keskitetysti ja toissijaiset tiedot (kurssin nimi,
+   versio, Vaadin-linkki) piilotetaan, jotta aina näkyvä footer ei vie liikaa pystytilaa. */
 @media (max-width: 700px) {
   .app-footer {
     flex-direction: column;
     text-align: center;
+    padding: var(--lumo-space-xs) var(--lumo-space-m);
+    font-size: var(--lumo-font-size-xs);
   }
 
   .app-footer .footer-section {
     align-items: center;
+  }
+
+  .app-footer .footer-secondary {
+    display: none;
   }
 }
 

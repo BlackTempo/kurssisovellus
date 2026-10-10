@@ -31,6 +31,7 @@ import fi.lahtinen.kurssit.service.CourseService;
 import fi.lahtinen.kurssit.service.StudentService;
 import fi.lahtinen.kurssit.service.TeacherService;
 import fi.lahtinen.kurssit.ui.MainLayout;
+import fi.lahtinen.kurssit.ui.components.FormFields;
 import jakarta.annotation.security.PermitAll;
 
 import java.time.format.DateTimeFormatter;
@@ -54,8 +55,8 @@ public class CourseSearchView extends VerticalLayout {
     private final TextField name = new TextField("Nimi sisältää");
     private final IntegerField minCredits = new IntegerField("Opintopisteitä vähintään");
     // Kohta 2: päivämääräväli
-    private final DatePicker startFrom = new DatePicker("Alkaa aikaisintaan");
-    private final DatePicker startTo = new DatePicker("Alkaa viimeistään");
+    private final DatePicker startFrom = FormFields.date("Alkaa aikaisintaan");
+    private final DatePicker startTo = FormFields.date("Alkaa viimeistään", "Yläraja ei voi olla ennen alarajaa", null);
     // Kohta 3: relaatioentiteetti (JOIN M:N)
     private final ComboBox<Student> student = new ComboBox<>("Ilmoittautunut opiskelija");
     // Kohta 4: relaatioentiteetin ominaisuus (JOIN + LIKE)

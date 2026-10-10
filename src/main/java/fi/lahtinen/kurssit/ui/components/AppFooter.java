@@ -12,8 +12,9 @@ import com.vaadin.flow.i18n.LocaleChangeObserver;
 /**
  * Sovelluksen footer (vaatimus 15): tekijä, copyright ja linkit.
  * <p>
- * Kiinnitys alaosaan, visuaalinen erottuminen (tumma tausta + korostusvärinen yläreuna) ja
- * responsiivisuus on toteutettu CSS:ssä ({@code layout.css}, luokka {@code .app-footer}).
+ * Kiinnitys näkymän alaosaan (sticky), visuaalinen erottuminen (tumma tausta + korostusvärinen
+ * yläreuna + varjo) ja responsiivisuus on toteutettu CSS:ssä ({@code layout.css}, luokka
+ * {@code .app-footer}). {@code footer-secondary}-osat piilotetaan kapealla näytöllä.
  * Semanttinen {@code <footer>}-elementti auttaa ruudunlukijoita tunnistamaan alueen.
  */
 public class AppFooter extends Footer implements LocaleChangeObserver {
@@ -28,16 +29,20 @@ public class AppFooter extends Footer implements LocaleChangeObserver {
     public AppFooter() {
         addClassName("app-footer");
 
+        course.addClassName("footer-secondary");
         Div about = new Div(author, course);
         about.addClassName("footer-section");
 
         sourceLink.getElement().setAttribute("rel", "noopener");
         Anchor docsLink = new Anchor("https://vaadin.com/docs/v24", "Vaadin docs", AnchorTarget.BLANK);
         docsLink.getElement().setAttribute("rel", "noopener");
+        docsLink.addClassName("footer-secondary");
         Div links = new Div(VaadinIcon.CODE.create(), sourceLink, docsLink);
         links.addClassName("footer-links");
 
-        Div legal = new Div(copyright, new Span("v1.0"));
+        Span version = new Span("v1.0");
+        version.addClassName("footer-secondary");
+        Div legal = new Div(copyright, version);
         legal.addClassName("footer-section");
 
         add(about, links, legal);

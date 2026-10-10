@@ -23,6 +23,7 @@ import fi.lahtinen.kurssit.domain.Teacher;
 import fi.lahtinen.kurssit.service.BusinessException;
 import fi.lahtinen.kurssit.service.TeacherService;
 import fi.lahtinen.kurssit.ui.MainLayout;
+import fi.lahtinen.kurssit.ui.components.FormFields;
 import fi.lahtinen.kurssit.ui.components.Notifications;
 import jakarta.annotation.security.PermitAll;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -105,10 +106,10 @@ public class TeacherView extends VerticalLayout {
 
         TextField firstName = new TextField("Etunimi");
         TextField lastName = new TextField("Sukunimi");
-        EmailField email = new EmailField("Sähköposti");
+        EmailField email = FormFields.email("Sähköposti");
         TextField phone = new TextField("Puhelin");
         TextField title = new TextField("Titteli");
-        DatePicker hireDate = new DatePicker("Työsuhde alkanut");
+        DatePicker hireDate = FormFields.date("Työsuhde alkanut");
         hireDate.setMax(LocalDate.now());
 
         // BeanValidationBinder lukee validointisäännöt entiteetin annotaatioista: säännöt on määritelty
