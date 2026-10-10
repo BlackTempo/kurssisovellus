@@ -2,7 +2,7 @@
 
 **Tekijä:** Joonas Lahtinen
 **Sovellus:** Kurssisovellus (kurssien, opettajien, työhuoneiden ja opiskelijoiden hallinta)
-**Repositorio:** *(lisää GitHub-linkki)*
+**Repositorio:** https://github.com/BlackTempo/kurssisovellus
 **Tavoitearvosana:** 5
 
 ## Yhteenveto
@@ -24,6 +24,14 @@ Kaikki tiedostopolut ovat suhteessa hakemistoon `src/main/java/fi/lahtinen/kurss
 **Testaus.** Toteutusta on testattu kahdella tavalla:
 - Integraatiotestit (`./mvnw test`, 17 testiä) kattavat Criteria-haun, rekisteröinnin ja ylläpitäjän sähköposti-ilmoituksen, salasanan palautuksen, CSV-tuonnin ja -viennin, auditoinnin, Envers-historian ja XSS-sanitoinnin.
 - Selainpohjainen savutesti (Playwright) on ajettu Docker-ympäristöä vastaan tuotantotilassa. Siinä kirjaudutaan kaikilla rooleilla ja testataan Push kahden selaimen välillä, tiedostojen lataukset sekä salasanan palautus Mailpitiin tulleen linkin kautta.
+
+## Arvioijan pikaohje
+
+1. Käynnistä sovellus komennolla `docker compose up --build` ja avaa http://localhost:8080. Sähköpostit näkyvät osoitteessa http://localhost:8025.
+2. **Kirjautumattomana:** etusivu näkyy (16). Kielen voi vaihtaa FI/EN (23). Rekisteröidy (17), ja ylläpitäjän ilmoitus ilmestyy Mailpitiin (26). Kokeile "Unohditko salasanan?" → linkki Mailpitistä → uusi salasana (27).
+3. **`user` / `user123`:** Kurssit (CRUD, Quill, liitteet, historia), Kurssihaku (Criteria), Opettajat, Työhuoneet, Opiskelijat (CSV) ja Oma profiili (kuva). Avaa `/admin/users`, jolloin näkyy oma pääsy evätty -sivu (18).
+4. **`admin` / `admin123`:** Käyttäjähallinta ja Muutoshistoria (32). Avaa `/students`, jolloin näkyy pääsy evätty -sivu (sivu on vain super- ja user-rooleille).
+5. **Push (22):** pidä etusivu auki yhdessä selaimessa ja tallenna kurssi toisessa. "Live-muutokset" päivittyy heti.
 
 ---
 
@@ -124,7 +132,7 @@ Teeman tiedostot ovat hakemistossa `src/main/frontend/themes/kurssiteema/`, ja t
 
 | Kohta | Toteutus |
 |---|---|
-| **21. GitHub** | Repositorio: *(lisää linkki)*. Commit-historia dokumentoi työn etenemisen. |
+| **21. GitHub** | Repositorio: https://github.com/BlackTempo/kurssisovellus. Commit-historia dokumentoi työn etenemisen. README.md sisältää käynnistysohjeet ja demotunnukset. |
 | **22. Vaadin Server Push** | `@Push` (`config/AppShell.java` r. 18). `service/Broadcaster.java` välittää `DataChangedEvent`-tapahtumat **commitin jälkeen** (`@TransactionalEventListener(AFTER_COMMIT)`) kaikille avoimille UI:lle. `DashboardView` (r. 232) päivittää "Live-muutokset"-listan ja tilastot, ja `CourseView` (r. 407) päivittää gridin ja näyttää ilmoituksen. UI:ta muokataan `ui.access()`-kutsun sisällä, ja rekisteröinti poistetaan `onDetach`-metodissa. *Kokeilu: avaa etusivu yhdessä selaimessa ja muokkaa kurssia toisessa.* |
 | **23. Lokalisointi (fi/en)** | `src/main/resources/vaadin-i18n/translations{,_fi,_en}.properties` (Vaadin `DefaultI18NProvider`). Kielivalitsin on headerissa (`MainLayout.java` r. 130–137) ja tallentaa kielen `VaadinSession`iin. Kokonaan lokalisoituja ovat **MainLayout (navigaatio, header), footer, etusivu, kirjautuminen, rekisteröityminen, salasanan palautus ja pääsy evätty -sivu** (`LocaleChangeObserver`). Selaimen kieli valitaan automaattisesti. |
 | **24. Docker-image + Dockerfile** | `Dockerfile`: monivaiheinen build (JDK + `-Pproduction` → JRE), ajo ei-root-käyttäjänä ja upload-volume. Vaadin ajetaan tuotantotilassa valmiiksi käännetyllä frontend-bundlella. |

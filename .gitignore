@@ -51,3 +51,6 @@ data/
 uploads/
 *.mv.db
 *.trace.db
+
+### Paikalliset salaisuudet ###
+.env

@@ -58,6 +58,11 @@ Kehitystila käyttää tiedostopohjaista H2-kantaa (`./data/`).
 
 Rekisteröitymällä luodaan uusi USER-tunnus. Ylläpitäjä saa siitä sähköposti-ilmoituksen Mailpitiin.
 
+> **Tietoturvahuomio:** Demotunnukset ja tietokannan oletussalasana (`kurssit`) on tarkoitettu vain
+> paikalliseen kehitykseen ja arviointiin, ja tehtävänanto vaatii ne. Jos sovellus julkaistaan
+> verkkoon, vaihda tunnusten salasanat heti ensimmäisen käynnistyksen jälkeen ja aseta
+> `DB_PASSWORD` `.env`-tiedostossa. Älä lisää `.env`-tiedostoa versionhallintaan.
+
 ## Rakenne
 
 ```

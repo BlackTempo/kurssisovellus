@@ -18,7 +18,7 @@ import com.vaadin.flow.i18n.LocaleChangeObserver;
  */
 public class AppFooter extends Footer implements LocaleChangeObserver {
 
-    public static final String GITHUB_URL = "https://github.com/joonaslahtinen/kurssisovellus";
+    public static final String GITHUB_URL = "https://github.com/BlackTempo/kurssisovellus";
 
     private final Span author = new Span();
     private final Span copyright = new Span();
