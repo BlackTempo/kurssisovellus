@@ -63,6 +63,8 @@ import java.util.List;
  * (CourseView) ja aikajananäkymästä (HistoryView) – vaatimus 12.
  * <p>
  * Server Push (vaatimus 22): "Live-muutokset"-lista päivittyy, kun kuka tahansa muokkaa tietoja.
+ * Lista näytetään vain kirjautuneille, koska viesteissä on käyttäjätunnuksia ja opiskelijoiden nimiä.
+ * Kirjautumattomalle Push päivittää vain tilastot ja kurssikortit.
  */
 @Route(value = "", layout = MainLayout.class)
 @PageTitle("Etusivu | Kurssisovellus")
@@ -89,6 +91,7 @@ public class DashboardView extends VerticalLayout implements LocaleChangeObserve
     private final H2 activityTitle = new H2();
     private final VerticalLayout activityList = new VerticalLayout();
     private final Span activityEmpty = new Span();
+    private final boolean showActivity;
     private Registration broadcasterRegistration;
 
     public DashboardView(AuthenticatedUser authenticatedUser, CourseService courseService,
@@ -116,6 +119,11 @@ public class DashboardView extends VerticalLayout implements LocaleChangeObserve
         activityList.setSpacing(false);
         activityEmpty.addClassName(TextColor.SECONDARY);
         activityList.add(activityEmpty);
+        // Näkymä luodaan uudelleen kirjautumisen jälkeen (kirjautuminen lataa sivun), joten tieto
+        // voidaan lukea kerran konstruktorissa.
+        showActivity = authenticatedUser.isLoggedIn();
+        activityTitle.setVisible(showActivity);
+        activityList.setVisible(showActivity);
         add(activityTitle, activityList);
     }
 
@@ -230,7 +238,9 @@ public class DashboardView extends VerticalLayout implements LocaleChangeObserve
         // vain session lukon alla, ja ui.access() hankkii lukon sekä lähettää muutokset selaimeen
         // @Push-yhteyden kautta heti lukon vapautuessa.
         broadcasterRegistration = broadcaster.register(event -> ui.access(() -> {
-            addActivity(event);
+            if (showActivity) {
+                addActivity(event);
+            }
             refreshContent();
         }));
     }
@@ -249,7 +259,9 @@ public class DashboardView extends VerticalLayout implements LocaleChangeObserve
         activityEmpty.setVisible(false);
         Span time = new Span(TIME.format(event.at()) + " ");
         time.addClassNames(TextColor.SECONDARY, FontSize.SMALL);
-        Span text = new Span(event.describe());
+        // Viesti kootaan käännöksistä, jotta se näkyy käyttäjän valitsemalla kielellä (vaatimus 23).
+        Span text = new Span(getTranslation(event.action().translationKey(), event.username(),
+                getTranslation(event.entityType().translationKey()), event.label()));
         text.addClassName(FontWeight.MEDIUM);
         Div item = new Div(time, text);
         item.addClassName("activity-item");

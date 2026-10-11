@@ -121,8 +121,9 @@ public class TeacherView extends VerticalLayout {
         binder.forField(phone).withNullRepresentation("").bind("phone");
         binder.forField(title).withNullRepresentation("").bind("title");
         binder.forField(hireDate).bind("hireDate");
-        // readBean + writeBeanIfValid: muutokset kopioidaan entiteettiin vasta tallennettaessa, joten
-        // peruutettu dialogi ei jätä gridin riviin keskeneräisiä muutoksia.
+        // readBean + writeBeanIfValid: muutokset kopioidaan entiteettiin vasta tallennettaessa eikä
+        // jokaisesta näppäilystä. Jos tallennus epäonnistuu, rivi palautetaan sulkemisen yhteydessä
+        // (ks. addOpenedChangeListener alla).
         binder.readBean(teacher);
 
         FormLayout form = new FormLayout(firstName, lastName, email, phone, title, hireDate);
@@ -134,13 +135,11 @@ public class TeacherView extends VerticalLayout {
                     teacherService.save(teacher);
                     Notifications.success("Opettaja tallennettu");
                     dialog.close();
-                    refresh();
                 } catch (BusinessException ex) {
                     Notifications.error(ex.getMessage());
                 } catch (ObjectOptimisticLockingFailureException ex) {
                     Notifications.error("Toinen käyttäjä muokkasi tietoja samaan aikaan. Avaa lomake uudelleen.");
                     dialog.close();
-                    refresh();
                 }
             }
         });
@@ -154,6 +153,14 @@ public class TeacherView extends VerticalLayout {
             delete.getStyle().set("margin-inline-end", "auto");
             dialog.getFooter().addComponentAsFirst(delete);
         }
+        // Grid ladataan aina uudelleen dialogin sulkeutuessa (tallennus, poisto tai peruutus). Binder
+        // kirjoittaa arvot gridin riviin ennen tallennusta; jos tallennus hylätään (esim. varattu
+        // sähköposti) ja käyttäjä peruuttaa, rivissä ei saa näkyä tallentamattomia arvoja.
+        dialog.addOpenedChangeListener(e -> {
+            if (!e.isOpened()) {
+                refresh();
+            }
+        });
         dialog.setWidth("min(640px, 95vw)");
         dialog.open();
         firstName.focus();
@@ -167,7 +174,6 @@ public class TeacherView extends VerticalLayout {
                         teacherService.delete(teacher);
                         Notifications.success("Opettaja poistettu");
                         formDialog.close();
-                        refresh();
                     } catch (BusinessException ex) {
                         Notifications.error(ex.getMessage());
                     }

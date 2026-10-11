@@ -37,6 +37,7 @@ public class PasswordResetToken {
     @Column(nullable = false)
     private Instant expiresAt;
 
+    /** Asetetaan käytön yhteydessä massapäivityksellä (PasswordResetTokenRepository.invalidateAllForUser). */
     private Instant usedAt;
 
     protected PasswordResetToken() {
@@ -51,10 +52,6 @@ public class PasswordResetToken {
 
     public boolean isUsable(Instant now) {
         return usedAt == null && now.isBefore(expiresAt);
-    }
-
-    public void markUsed(Instant now) {
-        this.usedAt = now;
     }
 
     public Long getId() {

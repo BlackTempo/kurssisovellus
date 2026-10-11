@@ -4,6 +4,7 @@ import fi.lahtinen.kurssit.domain.AppUser;
 import fi.lahtinen.kurssit.domain.PasswordResetToken;
 import fi.lahtinen.kurssit.repository.PasswordResetTokenRepository;
 import fi.lahtinen.kurssit.repository.AppUserRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,7 +23,8 @@ import java.util.HexFormat;
  * <p>
  * Kulku: käyttäjä antaa sähköpostiosoitteen → luodaan satunnainen token, josta tallennetaan vain
  * tiiviste → raakatoken lähetetään linkissä → linkin avaamisen jälkeen token tarkistetaan
- * (olemassa, voimassa, käyttämätön) ja salasana vaihdetaan. Token mitätöidään käytön jälkeen.
+ * (olemassa, voimassa, käyttämätön) ja salasana vaihdetaan. Vaihdon jälkeen käyttäjän kaikki tokenit
+ * mitätöidään, myös aiemmin pyydetyt.
  */
 @Service
 public class PasswordResetService {
@@ -30,26 +32,33 @@ public class PasswordResetService {
     /** Lyhyt voimassaolo rajaa ajan, jonka varastettu tai unohtunut linkki on hyödynnettävissä. */
     public static final Duration TOKEN_VALIDITY = Duration.ofMinutes(30);
 
+    /**
+     * Uutta linkkiä ei lähetetä samalle käyttäjälle tätä useammin. Ilman rajaa kuka tahansa voisi
+     * täyttää toisen käyttäjän sähköpostilaatikon palautuslomakkeella.
+     */
+    public static final Duration RESEND_INTERVAL = Duration.ofMinutes(2);
+
     private final SecureRandom random = new SecureRandom();
     private final PasswordResetTokenRepository tokenRepository;
     private final AppUserRepository userRepository;
     private final UserService userService;
-    private final MailService mailService;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
     public PasswordResetService(PasswordResetTokenRepository tokenRepository, AppUserRepository userRepository,
-                                UserService userService, MailService mailService) {
+                                UserService userService, ApplicationEventPublisher events) {
         this.tokenRepository = tokenRepository;
         this.userRepository = userRepository;
         this.userService = userService;
-        this.mailService = mailService;
+        this.events = events;
         this.clock = Clock.systemUTC();
     }
 
     /**
      * Käynnistää palautuksen. Metodi ei kerro kutsujalle, löytyikö osoitetta: käyttöliittymä näyttää
      * aina saman viestin, jottei lomakkeella voi selvittää, kenellä on tunnus palvelussa
-     * (user enumeration).
+     * (user enumeration). Samasta syystä myös uudelleenlähetyksen rajoitus ({@link #RESEND_INTERVAL})
+     * ohittaa pyynnön hiljaa.
      */
     @Transactional
     public void requestReset(String email) {
@@ -57,6 +66,7 @@ public class PasswordResetService {
         tokenRepository.deleteExpired(now);
         userRepository.findByEmailIgnoreCase(email.trim())
                 .filter(AppUser::isEnabled)
+                .filter(user -> !recentlyRequested(user, now))
                 .ifPresent(user -> {
                     // 32 satunnaista tavua = 256 bittiä entropiaa; Base64URL, jotta token kelpaa
                     // sellaisenaan URL-parametriksi. UUID olisi heikompi (122 bittiä, osin ennustettava rakenne).
@@ -65,9 +75,16 @@ public class PasswordResetService {
                     String rawToken = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
 
                     tokenRepository.save(new PasswordResetToken(sha256(rawToken), user, now.plus(TOKEN_VALIDITY)));
-                    mailService.sendPasswordResetLink(user.getEmail(), user.getFullName(), rawToken,
-                            TOKEN_VALIDITY.toMinutes());
+                    // Viesti lähtee tapahtuman kautta vasta commitin jälkeen (ks. MailService).
+                    events.publishEvent(new PasswordResetRequestedEvent(user.getEmail(), user.getFullName(),
+                            rawToken, TOKEN_VALIDITY.toMinutes()));
                 });
+    }
+
+    /** Token, joka vanhenee myöhemmin kuin (nyt + voimassaolo - väli), on luotu viimeisen välin aikana. */
+    private boolean recentlyRequested(AppUser user, Instant now) {
+        return tokenRepository.existsByUserIdAndUsedAtIsNullAndExpiresAtAfter(user.getId(),
+                now.plus(TOKEN_VALIDITY).minus(RESEND_INTERVAL));
     }
 
     @Transactional(readOnly = true)
@@ -87,7 +104,7 @@ public class PasswordResetService {
                 .filter(t -> t.isUsable(now))
                 .orElseThrow(() -> new BusinessException("Linkki on vanhentunut tai jo käytetty. Pyydä uusi linkki."));
         userService.changePassword(token.getUser(), newPassword);
-        token.markUsed(now);
+        tokenRepository.invalidateAllForUser(token.getUser(), now);
     }
 
     static String sha256(String value) {

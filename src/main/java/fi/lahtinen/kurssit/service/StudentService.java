@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static fi.lahtinen.kurssit.service.DataChangedEvent.Action;
+import static fi.lahtinen.kurssit.service.DataChangedEvent.EntityType;
 
 /** Opiskelijoiden liiketoimintalogiikka (vaatimus 4: CRUD + M:N-ilmoittautumiset). */
 @Service
@@ -44,7 +45,7 @@ public class StudentService {
         }
         Action action = student.isNew() ? Action.CREATED : Action.UPDATED;
         Student saved = studentRepository.save(student);
-        events.publishEvent(new DataChangedEvent("Opiskelija", action, saved.getFullName(),
+        events.publishEvent(new DataChangedEvent(EntityType.STUDENT, action, saved.getFullName(),
                 SecurityUtils.currentUsernameOrSystem(), Instant.now()));
         return saved;
     }
@@ -53,7 +54,7 @@ public class StudentService {
     public void delete(Student student) {
         // Student omistaa liitostaulun, joten Hibernate poistaa course_student-rivit automaattisesti.
         studentRepository.deleteById(student.getId());
-        events.publishEvent(new DataChangedEvent("Opiskelija", Action.DELETED, student.getFullName(),
+        events.publishEvent(new DataChangedEvent(EntityType.STUDENT, Action.DELETED, student.getFullName(),
                 SecurityUtils.currentUsernameOrSystem(), Instant.now()));
     }
 }

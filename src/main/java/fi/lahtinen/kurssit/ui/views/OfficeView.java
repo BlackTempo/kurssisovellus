@@ -107,13 +107,11 @@ public class OfficeView extends VerticalLayout {
                     officeService.save(office);
                     Notifications.success("Työhuone tallennettu");
                     dialog.close();
-                    refresh();
                 } catch (BusinessException ex) {
                     Notifications.error(ex.getMessage());
                 } catch (ObjectOptimisticLockingFailureException ex) {
                     Notifications.error("Toinen käyttäjä muokkasi tietoja samaan aikaan.");
                     dialog.close();
-                    refresh();
                 }
             }
         });
@@ -127,7 +125,6 @@ public class OfficeView extends VerticalLayout {
                     officeService.delete(office);
                     Notifications.success("Työhuone poistettu");
                     dialog.close();
-                    refresh();
                 }, "Peruuta", ev -> { });
                 confirm.setConfirmButtonTheme("error primary");
                 confirm.open();
@@ -136,6 +133,14 @@ public class OfficeView extends VerticalLayout {
             delete.getStyle().set("margin-inline-end", "auto");
             dialog.getFooter().addComponentAsFirst(delete);
         }
+        // Grid ladataan aina uudelleen dialogin sulkeutuessa (tallennus, poisto tai peruutus). Binder
+        // kirjoittaa arvot gridin riviin ennen tallennusta; jos tallennus hylätään (esim. varattu
+        // sähköposti) ja käyttäjä peruuttaa, rivissä ei saa näkyä tallentamattomia arvoja.
+        dialog.addOpenedChangeListener(e -> {
+            if (!e.isOpened()) {
+                refresh();
+            }
+        });
         dialog.setWidth("min(600px, 95vw)");
         dialog.open();
     }

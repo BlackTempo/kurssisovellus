@@ -24,9 +24,11 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import fi.lahtinen.kurssit.domain.Course;
+import fi.lahtinen.kurssit.domain.Role;
 import fi.lahtinen.kurssit.domain.Student;
 import fi.lahtinen.kurssit.domain.Teacher;
 import fi.lahtinen.kurssit.repository.CourseFilter;
+import fi.lahtinen.kurssit.security.AuthenticatedUser;
 import fi.lahtinen.kurssit.service.CourseService;
 import fi.lahtinen.kurssit.service.StudentService;
 import fi.lahtinen.kurssit.service.TeacherService;
@@ -70,12 +72,19 @@ public class CourseSearchView extends VerticalLayout {
     private final CallbackDataProvider<Course, Void> dataProvider;
     private CourseFilter currentFilter = CourseFilter.empty();
 
-    public CourseSearchView(CourseService courseService, StudentService studentService, TeacherService teacherService) {
+    public CourseSearchView(CourseService courseService, StudentService studentService, TeacherService teacherService,
+                            AuthenticatedUser authenticatedUser) {
         addClassName("page");
         setSizeFull();
 
-        student.setItems(studentService.findAll());
-        student.setItemLabelGenerator(Student::toString);
+        // Opiskelijalista paljastaa opiskelijoiden nimet, joten ehto näytetään vain rooleille, joilla on
+        // pääsy opiskelijasivulle (SUPER, USER). ADMIN-käyttäjältä kenttä piilotetaan, eikä listaa ladata.
+        if (authenticatedUser.hasAnyRole(Role.SUPER, Role.USER)) {
+            student.setItems(studentService.findAll());
+            student.setItemLabelGenerator(Student::toString);
+        } else {
+            student.setVisible(false);
+        }
         teacher.setItems(teacherService.findAll());
         teacher.setItemLabelGenerator(Teacher::getFullName);
         minCredits.setMin(1);

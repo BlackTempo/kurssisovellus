@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static fi.lahtinen.kurssit.service.DataChangedEvent.Action;
+import static fi.lahtinen.kurssit.service.DataChangedEvent.EntityType;
 
 /** Työhuoneiden liiketoimintalogiikka (vaatimus 2: CRUD + 1:1-relaation eheys). */
 @Service
@@ -42,7 +43,7 @@ public class OfficeService {
         }
         Action action = office.isNew() ? Action.CREATED : Action.UPDATED;
         Office saved = officeRepository.save(office);
-        events.publishEvent(new DataChangedEvent("Työhuone", action, saved.getRoomNumber(),
+        events.publishEvent(new DataChangedEvent(EntityType.OFFICE, action, saved.getRoomNumber(),
                 SecurityUtils.currentUsernameOrSystem(), Instant.now()));
         return saved;
     }
@@ -50,7 +51,7 @@ public class OfficeService {
     @Transactional
     public void delete(Office office) {
         officeRepository.deleteById(office.getId());
-        events.publishEvent(new DataChangedEvent("Työhuone", Action.DELETED, office.getRoomNumber(),
+        events.publishEvent(new DataChangedEvent(EntityType.OFFICE, Action.DELETED, office.getRoomNumber(),
                 SecurityUtils.currentUsernameOrSystem(), Instant.now()));
     }
 }

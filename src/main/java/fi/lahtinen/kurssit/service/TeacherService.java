@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static fi.lahtinen.kurssit.service.DataChangedEvent.Action;
+import static fi.lahtinen.kurssit.service.DataChangedEvent.EntityType;
 
 /** Opettajien liiketoimintalogiikka (vaatimus 1: CRUD). */
 @Service
@@ -71,7 +72,7 @@ public class TeacherService {
     }
 
     private void publish(Action action, Teacher teacher) {
-        events.publishEvent(new DataChangedEvent("Opettaja", action, teacher.getFullName(),
+        events.publishEvent(new DataChangedEvent(EntityType.TEACHER, action, teacher.getFullName(),
                 SecurityUtils.currentUsernameOrSystem(), Instant.now()));
     }
 }

@@ -1,9 +1,13 @@
 package fi.lahtinen.kurssit.service;
 
+import com.vaadin.flow.shared.Registration;
+import fi.lahtinen.kurssit.domain.AppUser;
 import fi.lahtinen.kurssit.domain.Course;
+import fi.lahtinen.kurssit.domain.Role;
 import fi.lahtinen.kurssit.domain.Student;
 import fi.lahtinen.kurssit.repository.AppUserRepository;
 import fi.lahtinen.kurssit.repository.CourseRepository;
+import fi.lahtinen.kurssit.repository.PasswordResetTokenRepository;
 import fi.lahtinen.kurssit.repository.StudentRepository;
 import org.hibernate.envers.RevisionType;
 import org.junit.jupiter.api.Test;
@@ -19,7 +23,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BooleanSupplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -63,6 +71,10 @@ class ServiceIntegrationTest {
     StudentRepository studentRepository;
     @Autowired
     PasswordEncoder passwordEncoder;
+    @Autowired
+    PasswordResetTokenRepository tokenRepository;
+    @Autowired
+    AccessRevocationBroadcaster revocations;
 
     @Test
     void registrationStoresHashAndNotifiesAdmins() {
@@ -112,6 +124,69 @@ class ServiceIntegrationTest {
     }
 
     @Test
+    void userWithPendingPasswordResetCanBeDeleted() {
+        userService.register("poistettava", "Poistettava Käyttäjä", "poistettava@example.com", "salasana123");
+        passwordResetService.requestReset("poistettava@example.com");
+        Long id = userRepository.findByUsername("poistettava").orElseThrow().getId();
+        assertThat(tokenRepository.existsByUserIdAndUsedAtIsNullAndExpiresAtAfter(id, Instant.now())).isTrue();
+
+        // Ennen korjausta poisto kaatui FK-rajoitteeseen, koska token viittasi käyttäjään.
+        userService.delete(id, "admin");
+
+        assertThat(userRepository.findById(id)).isEmpty();
+        assertThat(tokenRepository.countByUserId(id)).isZero();
+    }
+
+    @Test
+    void adminCannotDeleteOwnAccount() {
+        Long adminId = userRepository.findByUsername("admin").orElseThrow().getId();
+        assertThatThrownBy(() -> userService.delete(adminId, "admin")).isInstanceOf(BusinessException.class);
+        assertThat(userRepository.findById(adminId)).isPresent();
+    }
+
+    @Test
+    void accessChangesRevokeOpenSessions() {
+        userService.register("istunto", "Istunto Testaaja", "istunto@example.com", "salasana123");
+        Long id = userRepository.findByUsername("istunto").orElseThrow().getId();
+        AtomicInteger revoked = new AtomicInteger();
+        Registration registration = revocations.register("istunto", revoked::incrementAndGet);
+        try {
+            userService.updateRolesAndStatus(id, EnumSet.of(Role.USER), false, "admin"); // lukitus
+            waitUntil(() -> revoked.get() == 1);
+
+            // Muuttumaton tallennus ei katkaise istuntoa turhaan.
+            userService.updateRolesAndStatus(id, EnumSet.of(Role.USER), false, "admin");
+            userService.updateRolesAndStatus(id, EnumSet.of(Role.USER, Role.SUPER), false, "admin");
+            waitUntil(() -> revoked.get() == 2);
+
+            userService.delete(id, "admin");
+            waitUntil(() -> revoked.get() == 3);
+        } finally {
+            registration.remove();
+        }
+    }
+
+    /** Istuntojen katkaisu tapahtuu taustasäikeessä, joten odotetaan ehtoa enintään 5 sekuntia. */
+    private static void waitUntil(BooleanSupplier condition) {
+        long deadline = System.currentTimeMillis() + 5000;
+        while (!condition.getAsBoolean()) {
+            assertThat(System.currentTimeMillis()).as("ehto ei täyttynyt ajoissa").isLessThan(deadline);
+            Thread.onSpinWait();
+        }
+    }
+
+    @Test
+    void resetLinkIsNotResentWithinInterval() {
+        userService.register("kiirehtija", "Kiire Hti", "kiirehtija@example.com", "salasana123");
+        AppUser user = userRepository.findByUsername("kiirehtija").orElseThrow();
+
+        passwordResetService.requestReset("kiirehtija@example.com");
+        passwordResetService.requestReset("kiirehtija@example.com");
+
+        assertThat(tokenRepository.countByUserId(user.getId())).isEqualTo(1);
+    }
+
+    @Test
     void unknownEmailDoesNotSendAnything() {
         clearInvocations(mailSender);
         passwordResetService.requestReset("tuntematon@example.com");
@@ -142,6 +217,16 @@ class ServiceIntegrationTest {
         assertThat(created.getCourses()).extracting(Course::getCode).containsExactlyInAnyOrder("JAV-101", "TKA-150");
         assertThat(studentRepository.findByStudentNumber("S100001").orElseThrow().getLastName()).isEqualTo("Laine-Muokattu");
         assertThat(studentRepository.findByStudentNumber("X1")).isEmpty();
+    }
+
+    @Test
+    void csvExportNeutralizesFormulas() {
+        assertThat(CsvService.protect("=HYPERLINK(\"x\")")).isEqualTo("'=HYPERLINK(\"x\")");
+        assertThat(CsvService.protect("-1+1")).startsWith("'");
+        assertThat(CsvService.protect("Aino")).isEqualTo("Aino");
+        // Tuonti palauttaa alkuperäisen arvon, joten vienti + tuonti ei muuta dataa.
+        assertThat(CsvService.unprotect(CsvService.protect("@SUM(A1)"))).isEqualTo("@SUM(A1)");
+        assertThat(CsvService.unprotect("'Tavallinen")).isEqualTo("'Tavallinen");
     }
 
     @Test

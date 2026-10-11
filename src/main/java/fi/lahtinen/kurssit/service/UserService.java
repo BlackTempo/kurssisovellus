@@ -3,6 +3,7 @@ package fi.lahtinen.kurssit.service;
 import fi.lahtinen.kurssit.domain.AppUser;
 import fi.lahtinen.kurssit.domain.Role;
 import fi.lahtinen.kurssit.repository.AppUserRepository;
+import fi.lahtinen.kurssit.repository.PasswordResetTokenRepository;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,12 +23,14 @@ public class UserService {
     public static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/png", "image/jpeg");
 
     private final AppUserRepository userRepository;
+    private final PasswordResetTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final ApplicationEventPublisher events;
 
-    public UserService(AppUserRepository userRepository, PasswordEncoder passwordEncoder,
-                       ApplicationEventPublisher events) {
+    public UserService(AppUserRepository userRepository, PasswordResetTokenRepository tokenRepository,
+                       PasswordEncoder passwordEncoder, ApplicationEventPublisher events) {
         this.userRepository = userRepository;
+        this.tokenRepository = tokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.events = events;
     }
@@ -104,7 +107,11 @@ public class UserService {
         return userRepository.findAllByOrderByUsernameAsc();
     }
 
-    /** Ylläpitäjän tekemä roolien ja tilan muutos. */
+    /**
+     * Ylläpitäjän tekemä roolien ja tilan muutos. Jos jokin muuttui, käyttäjän avoimet istunnot
+     * kirjataan ulos ({@link UserAccessChangedEvent}): roolit luetaan vain kirjautuessa, joten muutos
+     * ei muuten tulisi voimaan, ja lukittu käyttäjä voisi jatkaa jo avattua istuntoa.
+     */
     @Transactional
     public void updateRolesAndStatus(Long userId, Set<Role> roles, boolean enabled, String currentUsername) {
         if (roles.isEmpty()) {
@@ -116,8 +123,12 @@ public class UserService {
         if (user.getUsername().equals(currentUsername) && (!roles.contains(Role.ADMIN) || !enabled)) {
             throw new BusinessException("Et voi poistaa omaa ylläpitäjän oikeuttasi tai lukita omaa tunnustasi");
         }
+        boolean changed = !user.getRoles().equals(roles) || user.isEnabled() != enabled;
         user.setRoles(EnumSet.copyOf(roles));
         user.setEnabled(enabled);
+        if (changed) {
+            events.publishEvent(new UserAccessChangedEvent(user.getUsername()));
+        }
     }
 
     @Transactional
@@ -126,6 +137,10 @@ public class UserService {
         if (user.getUsername().equals(currentUsername)) {
             throw new BusinessException("Et voi poistaa omaa tunnustasi");
         }
+        // Palautustokenit viittaavat käyttäjään pakollisella vierasavaimella, joten ne poistetaan
+        // ensin – muuten palautusta pyytäneen käyttäjän poisto kaatuisi FK-rajoitteeseen.
+        tokenRepository.deleteByUser(user);
         userRepository.delete(user);
+        events.publishEvent(new UserAccessChangedEvent(user.getUsername()));
     }
 }

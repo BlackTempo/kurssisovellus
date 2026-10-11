@@ -41,11 +41,14 @@ import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.shared.Registration;
 import fi.lahtinen.kurssit.domain.Course;
 import fi.lahtinen.kurssit.domain.CourseAttachment;
+import fi.lahtinen.kurssit.domain.Role;
 import fi.lahtinen.kurssit.domain.Student;
 import fi.lahtinen.kurssit.domain.Teacher;
+import fi.lahtinen.kurssit.security.AuthenticatedUser;
 import fi.lahtinen.kurssit.service.BusinessException;
 import fi.lahtinen.kurssit.service.Broadcaster;
 import fi.lahtinen.kurssit.service.CourseService;
+import fi.lahtinen.kurssit.service.DataChangedEvent.EntityType;
 import fi.lahtinen.kurssit.service.FileStorageService;
 import fi.lahtinen.kurssit.service.HistoryService;
 import fi.lahtinen.kurssit.service.TeacherService;
@@ -115,17 +118,24 @@ public class CourseView extends SplitLayout {
     private final Div attachmentList = new Div();
     private final VerticalLayout formLayout = new VerticalLayout();
 
+    /**
+     * Opiskelijoiden nimet näytetään vain rooleille, joilla on pääsy opiskelijasivulle. Muuten esim.
+     * ADMIN näkisi nimet tooltipistä, vaikka itse opiskelijasivu on häneltä estetty.
+     */
+    private final boolean canSeeStudents;
+
     private Course current;
     private Registration broadcasterRegistration;
 
     public CourseView(CourseService courseService, TeacherService teacherService,
                       FileStorageService fileStorageService, HistoryService historyService,
-                      Broadcaster broadcaster) {
+                      Broadcaster broadcaster, AuthenticatedUser authenticatedUser) {
         this.courseService = courseService;
         this.teacherService = teacherService;
         this.fileStorageService = fileStorageService;
         this.historyService = historyService;
         this.broadcaster = broadcaster;
+        this.canSeeStudents = authenticatedUser.hasAnyRole(Role.SUPER, Role.USER);
 
         setSizeFull();
         setSplitterPosition(58);
@@ -145,7 +155,7 @@ public class CourseView extends SplitLayout {
                 .setTextAlign(ColumnTextAlign.END);
         grid.addColumn(c -> DATE.format(c.getStartDate())).setHeader("Alkaa").setAutoWidth(true)
                 .setComparator(Course::getStartDate);
-        // M:N-relaatio näkyviin (vaatimus 4): täyttöaste badgena, nimet tooltipissä.
+        // M:N-relaatio näkyviin (vaatimus 4): täyttöaste badgena, nimet tooltipissä (jos rooli sallii).
         grid.addComponentColumn(this::studentsBadge).setHeader("Opiskelijat").setAutoWidth(true)
                 .setComparator(c -> c.getStudents().size());
         // Spring Data Auditingin kentät (vaatimus 30)
@@ -186,9 +196,16 @@ public class CourseView extends SplitLayout {
         Span badge = new Span(count + " / " + course.getMaxStudents());
         boolean full = count >= course.getMaxStudents();
         badge.getElement().getThemeList().add(full ? "badge error" : "badge success");
-        String names = course.getStudents().stream().map(Student::getFullName).sorted()
-                .collect(Collectors.joining(", "));
-        badge.getElement().setAttribute("title", names.isEmpty() ? "Ei ilmoittautuneita" : names);
+        String tooltip;
+        if (count == 0) {
+            tooltip = "Ei ilmoittautuneita";
+        } else if (canSeeStudents) {
+            tooltip = course.getStudents().stream().map(Student::getFullName).sorted()
+                    .collect(Collectors.joining(", "));
+        } else {
+            tooltip = count + " ilmoittautunutta";
+        }
+        badge.getElement().setAttribute("title", tooltip);
         return badge;
     }
 
@@ -377,16 +394,31 @@ public class CourseView extends SplitLayout {
                 }
             }), AttachmentType.DOWNLOAD, a.getFileName());
             Span size = new Span(" (" + humanSize(a.getSizeBytes()) + ")");
-            Button remove = new Button(VaadinIcon.CLOSE_SMALL.create(), e -> {
-                fileStorageService.delete(a);
-                refreshAttachments();
-            });
+            Button remove = new Button(VaadinIcon.CLOSE_SMALL.create(), e -> confirmAttachmentDelete(a));
             remove.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_ERROR);
             remove.setAriaLabel("Poista liite " + a.getFileName());
             HorizontalLayout row = new HorizontalLayout(VaadinIcon.PAPERCLIP.create(), link, size, remove);
             row.setAlignItems(FlexComponent.Alignment.CENTER);
             attachmentList.add(row);
         }
+    }
+
+    private void confirmAttachmentDelete(CourseAttachment attachment) {
+        ConfirmDialog dialog = new ConfirmDialog("Poistetaanko liite?",
+                "Liite " + attachment.getFileName() + " poistetaan pysyvästi.",
+                "Poista", e -> {
+                    try {
+                        fileStorageService.delete(attachment);
+                        Notifications.success("Liite poistettu");
+                    } catch (RuntimeException ex) {
+                        // Esim. toinen käyttäjä ehti poistaa liitteen tai koko kurssin välissä.
+                        Notifications.error("Liitteen poisto epäonnistui – se on ehkä jo poistettu.");
+                    }
+                    refreshAttachments();
+                },
+                "Peruuta", e -> { });
+        dialog.setConfirmButtonTheme("error primary");
+        dialog.open();
     }
 
     private static String humanSize(long bytes) {
@@ -406,7 +438,8 @@ public class CourseView extends SplitLayout {
         refreshGrid();
         UI ui = attachEvent.getUI();
         broadcasterRegistration = broadcaster.register(event -> {
-            if (!"Kurssi".equals(event.entityType()) && !"Opiskelija".equals(event.entityType())) {
+            // Opettajan nimi näkyy gridissä, joten myös opettajamuutos päivittää listan.
+            if (event.entityType() == EntityType.OFFICE) {
                 return;
             }
             ui.access(() -> {

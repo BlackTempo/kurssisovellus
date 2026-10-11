@@ -104,7 +104,10 @@ public class UserAdminView extends VerticalLayout {
         Button save = new Button("Tallenna", e -> {
             try {
                 userService.updateRolesAndStatus(user.getId(), roles.getValue(), enabled.getValue(), currentUsername);
-                Notifications.success("Käyttäjä päivitetty. Muutokset astuvat voimaan käyttäjän seuraavassa kirjautumisessa.");
+                // Muuttunut käyttäjä kirjataan ulos (UserService), jotta uudet oikeudet tulevat heti voimaan.
+                Notifications.success(user.getUsername().equals(currentUsername)
+                        ? "Omat roolisi muuttuivat. Sinut kirjataan ulos – kirjaudu uudelleen."
+                        : "Käyttäjä päivitetty. Jos hän on kirjautuneena, hänet kirjataan ulos.");
                 dialog.close();
                 refresh();
             } catch (BusinessException ex) {

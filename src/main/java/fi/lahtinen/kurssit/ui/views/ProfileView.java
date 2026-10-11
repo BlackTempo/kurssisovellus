@@ -112,7 +112,8 @@ public class ProfileView extends VerticalLayout {
         pwInfo.addClassNames(LumoUtility.TextColor.SECONDARY, LumoUtility.FontSize.SMALL);
         Button sendLink = new Button("Lähetä salasanan vaihtolinkki", VaadinIcon.ENVELOPE.create(), e -> {
             passwordResetService.requestReset(user.getEmail());
-            Notifications.success("Linkki lähetetty osoitteeseen " + user.getEmail());
+            Notifications.success("Linkki lähetetty osoitteeseen " + user.getEmail() + ". Uuden linkin voi pyytää "
+                    + PasswordResetService.RESEND_INTERVAL.toMinutes() + " minuutin välein.");
         });
 
         Div card = new Div(avatar, name, username, roles,

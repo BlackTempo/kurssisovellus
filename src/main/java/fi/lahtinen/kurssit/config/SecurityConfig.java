@@ -16,7 +16,7 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
  * {@link VaadinWebSecurity} tuo valmiiksi Vaadinin vaatimat poikkeukset (sisäiset pyynnöt, staattiset
  * resurssit, CSRF-käsittely) ja kytkee näkymien {@code @AnonymousAllowed}/{@code @PermitAll}/
  * {@code @RolesAllowed}-annotaatiot navigaation pääsynhallintaan. Näkymätason annotaatiot ovat
- * varsinainen pääsynhallinta; HTTP-tasolla avataan vain muutama staattinen polku.
+ * varsinainen pääsynhallinta; HTTP-tasolla avataan vain faviconin polku.
  * <p>
  * Huom: Vaadin 24.9+ merkitsee VaadinWebSecurityn vanhentuneeksi uuden VaadinSecurityConfigurerin
  * hyväksi. Tässä käytetään kurssimateriaalin mukaista, edelleen tuettua VaadinWebSecuritya.
@@ -28,8 +28,8 @@ public class SecurityConfig extends VaadinWebSecurity {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
+        // Favicon (META-INF/resources/icons) näytetään myös kirjautumissivulla, joten se avataan kaikille.
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers(new AntPathRequestMatcher("/images/**")).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/icons/**")).permitAll());
         super.configure(http);
         setLoginView(http, LoginView.class);

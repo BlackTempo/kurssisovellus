@@ -85,11 +85,15 @@ public class MailService {
                 """.formatted(event.username(), event.fullName(), event.email(), baseUrl));
     }
 
-    /** Salasanan palautuslinkki (vaatimus 27). */
+    /**
+     * Salasanan palautuslinkki (vaatimus 27). AFTER_COMMIT samasta syystä kuin yllä: linkki lähetetään
+     * vain, jos token todella tallentui tietokantaan.
+     */
     @Async
-    public void sendPasswordResetLink(String email, String fullName, String rawToken, long validMinutes) {
-        String link = baseUrl + "/reset-password?token=" + rawToken;
-        send(new String[]{email},
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onPasswordResetRequested(PasswordResetRequestedEvent event) {
+        String link = baseUrl + "/reset-password?token=" + event.rawToken();
+        send(new String[]{event.email()},
                 "Salasanan vaihto – Kurssisovellus",
                 """
                 Hei %s,
@@ -103,7 +107,7 @@ public class MailService {
                 pysyy ennallaan.
 
                 -- Kurssisovellus
-                """.formatted(fullName, validMinutes, link));
+                """.formatted(event.fullName(), event.validMinutes(), link));
     }
 
     private void send(String[] to, String subject, String text) {

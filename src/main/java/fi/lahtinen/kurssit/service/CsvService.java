@@ -44,12 +44,18 @@ import java.util.stream.Collectors;
  * Muoto: puolipiste erottimena ja UTF-8 BOM-merkillä. Suomenkielinen Excel olettaa puolipisteen
  * (pilkku on desimaalierotin) ja tunnistaa UTF-8:n vain BOMista – ilman sitä ääkköset näkyisivät
  * rikkinäisinä. Sama tiedosto voidaan siis avata Excelissä, muokata ja tuoda takaisin.
+ * <p>
+ * CSV-injektio: Excel suorittaa kaavana solun, joka alkaa merkillä =, +, -, @, sarkain tai rivinvaihto.
+ * Koska nimet ja sähköpostit ovat käyttäjäsyötettä, vienti lisää tällaisen arvon eteen heittomerkin
+ * (OWASP:n suositus), ja tuonti poistaa sen, jotta vienti ja tuonti säilyttävät arvon ennallaan.
  */
 @Service
 public class CsvService {
 
     static final String[] HEADERS = {"opiskelijanumero", "etunimi", "sukunimi", "sahkoposti",
             "syntymaaika", "aloituspaiva", "kurssit"};
+
+    private static final String FORMULA_PREFIXES = "=+-@\t\r";
 
     private static final CSVFormat FORMAT = CSVFormat.DEFAULT.builder()
             .setDelimiter(';')
@@ -85,8 +91,9 @@ public class CsvService {
                 // ilman erillistä liitostaulutiedostoa ja on luettavissa ihmiselle.
                 String courseCodes = s.getCourses().stream().map(Course::getCode).sorted()
                         .collect(Collectors.joining(","));
-                printer.printRecord(s.getStudentNumber(), s.getFirstName(), s.getLastName(), s.getEmail(),
-                        s.getBirthDate(), s.getEnrolledAt(), courseCodes);
+                printer.printRecord(protect(s.getStudentNumber()), protect(s.getFirstName()),
+                        protect(s.getLastName()), protect(s.getEmail()), s.getBirthDate(), s.getEnrolledAt(),
+                        courseCodes);
             }
             printer.flush();
         } catch (IOException e) {
@@ -149,7 +156,7 @@ public class CsvService {
         }
 
         if (created + updated > 0) {
-            events.publishEvent(new DataChangedEvent("Opiskelija", DataChangedEvent.Action.UPDATED,
+            events.publishEvent(new DataChangedEvent(DataChangedEvent.EntityType.STUDENT, DataChangedEvent.Action.UPDATED,
                     "CSV-tuonti (" + (created + updated) + " riviä)", SecurityUtils.currentUsernameOrSystem(),
                     Instant.now()));
         }
@@ -180,10 +187,10 @@ public class CsvService {
 
     private static Student toStudent(CSVRecord row, Map<String, Course> coursesByCode) {
         Student s = new Student();
-        s.setStudentNumber(row.get("opiskelijanumero"));
-        s.setFirstName(row.get("etunimi"));
-        s.setLastName(row.get("sukunimi"));
-        s.setEmail(row.get("sahkoposti"));
+        s.setStudentNumber(unprotect(row.get("opiskelijanumero")));
+        s.setFirstName(unprotect(row.get("etunimi")));
+        s.setLastName(unprotect(row.get("sukunimi")));
+        s.setEmail(unprotect(row.get("sahkoposti")));
         s.setBirthDate(parseDate(row.get("syntymaaika")));
         s.setEnrolledAt(parseDate(row.get("aloituspaiva")));
         s.setCourses(resolveCourses(row.get("kurssit"), coursesByCode));
@@ -197,6 +204,23 @@ public class CsvService {
         to.setBirthDate(from.getBirthDate());
         to.setEnrolledAt(from.getEnrolledAt());
         to.setCourses(from.getCourses());
+    }
+
+    /** Estää kaavan suorituksen Excelissä lisäämällä heittomerkin vaarallisen alkumerkin eteen. */
+    static String protect(String value) {
+        if (value != null && !value.isEmpty() && FORMULA_PREFIXES.indexOf(value.charAt(0)) >= 0) {
+            return "'" + value;
+        }
+        return value;
+    }
+
+    /** {@link #protect}in käänteistoiminto: poistaa viennissä lisätyn heittomerkin. */
+    static String unprotect(String value) {
+        if (value != null && value.length() > 1 && value.charAt(0) == '\''
+                && FORMULA_PREFIXES.indexOf(value.charAt(1)) >= 0) {
+            return value.substring(1);
+        }
+        return value;
     }
 
     /** Ohittaa UTF-8 BOMin, jotta ensimmäinen otsikko ei saa näkymätöntä etumerkkiä (Excel lisää BOMin). */

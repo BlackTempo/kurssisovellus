@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static fi.lahtinen.kurssit.service.DataChangedEvent.Action;
+import static fi.lahtinen.kurssit.service.DataChangedEvent.EntityType;
 
 /** Kurssien liiketoimintalogiikka (vaatimus 3: CRUD, sekä Criteria-haun palvelurajapinta). */
 @Service
@@ -99,7 +100,7 @@ public class CourseService {
     }
 
     private void publish(Action action, Course course) {
-        events.publishEvent(new DataChangedEvent("Kurssi", action, course.getCode() + " " + course.getName(),
+        events.publishEvent(new DataChangedEvent(EntityType.COURSE, action, course.getCode() + " " + course.getName(),
                 SecurityUtils.currentUsernameOrSystem(), Instant.now()));
     }
 }

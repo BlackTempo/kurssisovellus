@@ -92,9 +92,17 @@ public class RegisterView extends VerticalLayout implements LocaleChangeObserver
                 .withValidator(new StringLengthValidator("Vähintään " + UserService.MIN_PASSWORD_LENGTH + " merkkiä",
                         UserService.MIN_PASSWORD_LENGTH, 100))
                 .bind(RegistrationData::getPassword, RegistrationData::setPassword);
-        binder.forField(confirm).asRequired("Pakollinen")
-                .withValidator(value -> value.equals(password.getValue()), getTranslation("register.mismatch"))
+        // Virheviesti haetaan vasta validoinnin hetkellä (ErrorMessageProvider), jotta se näkyy kulloinkin
+        // valitulla kielellä. Konstruktorissa haettu teksti jäisi näkymän luontihetken kieleen.
+        Binder.Binding<RegistrationData, String> confirmBinding = binder.forField(confirm).asRequired("Pakollinen")
+                .withValidator(value -> value.equals(password.getValue()), context -> getTranslation("register.mismatch"))
                 .bind(RegistrationData::getConfirm, RegistrationData::setConfirm);
+        // Vahvistus tarkistetaan uudelleen, kun salasanaa muutetaan, ettei vanha virhe tai hyväksyntä jää voimaan.
+        password.addValueChangeListener(e -> {
+            if (!confirm.isEmpty()) {
+                confirmBinding.validate();
+            }
+        });
         binder.setBean(new RegistrationData());
 
         submit.addThemeVariants(ButtonVariant.LUMO_PRIMARY);

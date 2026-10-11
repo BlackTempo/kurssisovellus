@@ -36,9 +36,10 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
     public List<Course> search(CourseFilter filter, int offset, int limit) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
 
-        // Kaksivaiheinen haku: ensin sivun id:t ehtojen mukaan, sitten kurssit opettajineen.
-        // Fetch-joinia ja sivutusta ei voi yhdistää samaan kyselyyn turvallisesti, kun mukana voi olla
-        // M:N-join (opiskelijat), joka monistaa rivejä – LIMIT kohdistuisi monistettuihin riveihin.
+        // Kaksivaiheinen haku: ensin sivun id:t ehtojen mukaan, sitten näiden kurssien tiedot opettajineen.
+        // Criteria API:ssa ehtojen join ja fetch-join ovat eri olioita, joten yhdessä kyselyssä opettaja-
+        // taulu liitettäisiin kahdesti. Erillinen id-kysely pitää lisäksi sivutuksen oikeana, jos hakuun
+        // lisätään myöhemmin kokoelman fetch-join (esim. opiskelijat), joka monistaisi rivejä.
         CriteriaQuery<Long> idQuery = cb.createQuery(Long.class);
         Root<Course> course = idQuery.from(Course.class);
         Join<Course, Teacher> teacher = course.join("teacher", JoinType.INNER);
@@ -69,7 +70,8 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         Root<Course> course = query.from(Course.class);
         Join<Course, Teacher> teacher = course.join("teacher", JoinType.INNER);
 
-        // countDistinct, koska M:N-join opiskelijoihin voi monistaa saman kurssin useaksi riviksi.
+        // countDistinct varmistuksena: nykyiset joinit eivät monista kursseja (opiskelijajoin rajataan
+        // yhteen opiskelijaan), mutta laskenta pysyy oikeana, vaikka ehtoihin lisättäisiin uusia joineja.
         query.select(cb.countDistinct(course))
                 .where(buildPredicates(cb, query, course, teacher, filter));
         return em.createQuery(query).getSingleResult();

@@ -1,6 +1,8 @@
 package fi.lahtinen.kurssit.ui;
 
+import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -21,14 +23,18 @@ import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.i18n.LocaleChangeEvent;
 import com.vaadin.flow.i18n.LocaleChangeObserver;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.server.auth.AccessAnnotationChecker;
 import com.vaadin.flow.server.streams.DownloadHandler;
 import com.vaadin.flow.server.streams.DownloadResponse;
+import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import fi.lahtinen.kurssit.domain.AppUser;
 import fi.lahtinen.kurssit.security.AuthenticatedUser;
+import fi.lahtinen.kurssit.service.AccessRevocationBroadcaster;
 import fi.lahtinen.kurssit.service.UserService;
 import fi.lahtinen.kurssit.ui.components.AppFooter;
 import fi.lahtinen.kurssit.ui.views.CourseSearchView;
@@ -58,8 +64,11 @@ import java.util.Optional;
  * <p>
  * AppLayoutissa ei ole valmista footer-paikkaa, joten {@link #showRouterLayoutContent} on
  * ylikirjoitettu: näkymä sijoitetaan omaan säiliöönsä, jonka alla footer on aina.
+ * <p>
+ * Koska layout on kaikkien näkymien yhteinen, se myös katkaisee istunnon, jos ylläpitäjä lukitsee
+ * tunnuksen tai muuttaa sen rooleja (ks. {@link #onAttach} ja {@link #beforeEnter}).
  */
-public class MainLayout extends AppLayout implements LocaleChangeObserver {
+public class MainLayout extends AppLayout implements LocaleChangeObserver, BeforeEnterObserver {
 
     /** Navigaatiokohde: käännösavain, näkymäluokka ja oma ikoni jokaiselle näkymälle. */
     private record NavEntry(String key, Class<? extends Component> view, VaadinIcon icon) {
@@ -81,6 +90,7 @@ public class MainLayout extends AppLayout implements LocaleChangeObserver {
     private final AuthenticatedUser authenticatedUser;
     private final AccessAnnotationChecker accessChecker;
     private final UserService userService;
+    private final AccessRevocationBroadcaster revocations;
 
     private final Div viewContainer = new Div();
     private final H1 appTitle = new H1();
@@ -91,12 +101,14 @@ public class MainLayout extends AppLayout implements LocaleChangeObserver {
     private Button logoutButton;
     private Button loginButton;
     private Button registerButton;
+    private Registration revocationRegistration;
 
     public MainLayout(AuthenticatedUser authenticatedUser, AccessAnnotationChecker accessChecker,
-                      UserService userService) {
+                      UserService userService, AccessRevocationBroadcaster revocations) {
         this.authenticatedUser = authenticatedUser;
         this.accessChecker = accessChecker;
         this.userService = userService;
+        this.revocations = revocations;
 
         // Drawer ensisijaiseksi: leveällä näytöllä navigaatio on aina näkyvissä vasemmalla, kapealla
         // se muuttuu DrawerTogglella avattavaksi overlayksi.
@@ -236,6 +248,42 @@ public class MainLayout extends AppLayout implements LocaleChangeObserver {
     @Override
     public void removeRouterLayoutContent(HasElement oldContent) {
         viewContainer.getElement().removeAllChildren();
+    }
+
+    // --- Käyttöoikeuksien muutokset (vaatimus 16) ---------------------------------------------
+
+    /**
+     * Ylläpitäjän muuttaessa rooleja tai lukitessa tunnuksen käyttäjä kirjataan ulos heti Pushilla.
+     * Vaadinin logout() toimii myös taustasäikeestä ui.access()-lohkossa: WebSocket-tilassa se tekee
+     * ensin kierroksen selaimeen ja kirjaa ulos vasta sen jälkeen tulevassa HTTP-pyynnössä.
+     */
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent); // AppLayout alustaa tässä drawerin tilan
+        UI ui = attachEvent.getUI();
+        authenticatedUser.get().ifPresent(user -> revocationRegistration = revocations.register(
+                user.getUsername(), () -> ui.access(authenticatedUser::logout)));
+    }
+
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        super.onDetach(detachEvent);
+        if (revocationRegistration != null) {
+            revocationRegistration.remove();
+            revocationRegistration = null;
+        }
+    }
+
+    /**
+     * Varmistus tapauksiin, joissa Push-ilmoitus ei tavoita käyttäjää (esim. välilehti oli suljettu,
+     * mutta istunto on yhä voimassa): jokaisella navigoinnilla tarkistetaan, vastaako istunto vielä
+     * tietokannan tilaa.
+     */
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        if (authenticatedUser.isAccessRevoked()) {
+            authenticatedUser.logout();
+        }
     }
 
     // --- Lokalisointi (vaatimus 23) -------------------------------------------------------------
